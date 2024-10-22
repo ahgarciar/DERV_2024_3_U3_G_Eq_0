@@ -10,12 +10,12 @@ public class ClaseSingleton : MonoBehaviour
     private void Awake() {
 
         if (Instance != null && Instance != this){
-            Destroy(this); //gameobject
+            Destroy(gameObject); //gameobject
         }
         else {            
             Instance = this;
             
-            DontDestroyOnLoad(this);  //this = gameobject
+            DontDestroyOnLoad(gameObject);  //this = gameobject
         }
         
     }
