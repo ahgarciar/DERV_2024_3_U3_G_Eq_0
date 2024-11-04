@@ -4,11 +4,11 @@ using UnityEngine;
 
 public class HandlerTomarObjetos : MonoBehaviour
 {
-    public bool isTaken;
+    public bool action;
     public bool isObjectNextYou;
     public GameObject objectTaken;
 
-    public Transform original_scale;
+    public Vector3 original_scale;
 
     GameObject padre;
 
@@ -19,27 +19,29 @@ public class HandlerTomarObjetos : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        isTaken = false;
+        action = false;
     }
 
     // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space)){
-            if (!isTaken){ 
-                isTaken = true;
+            if (!action && isObjectNextYou){ //mod postclase ... solo se puede tomar si estas cerca .. evita que se inicie la toma antes de estar cerca 
+                action = true;
             }
             else{
-                isTaken = false;
+                action = false;
             }
         }
     }
 
 
 private void OnTriggerEnter(Collider other) {
-    if (other.gameObject.CompareTag("TakenObject")){
-        //modificado por corrutina... ->
-        isObjectNextYou = true;        
+    if (objectTaken == null) { //(mod postclase) solo actualiza la variable si no estamos cargando a algun objeto
+        if (other.gameObject.CompareTag("TakenObject")){
+            //modificado por corrutina... ->
+            isObjectNextYou = true;        
+        }
     }
 }
 
@@ -48,26 +50,30 @@ private void OnTriggerStay(Collider other) {
 
 if (temporal.CompareTag("TakenObject")){
     if(isObjectNextYou){
-        if (isTaken){            
-            objectTaken = temporal;  //guarda la instancia al objeto tomado
+        if (objectTaken == null){ //si el objeto se debe tomar
+            if(action){ //modificado postclase (no se ha tomado el objeto)
+                objectTaken = temporal;  //guarda la instancia al objeto tomado
+                
+                Vector3 aux = temporal.transform.localScale;
+                original_scale = new Vector3(aux.x, aux.y, aux.z); //respalda la escala original
 
-            temporal.transform.SetParent(padre.transform); //cambia de padre
-            Rigidbody rb = temporal.GetComponent<Rigidbody>(); //obtiene el rigidbody del objeto tomado
-            rb.isKinematic = true; //activa la funcionalidad kinematica
-            rb.useGravity = false; //desactiva la gravedad del objeto tomado para que no caiga de las manos
-            temporal.transform.position = transform.position; //posiciona al obj tomado en las manos del personaje
-            temporal.transform.rotation = transform.rotation; //posiciona al obj tomado en la rotacion de las manos del personaje
-            original_scale = temporal.transform; //respalda la escala original
-            temporal.transform.localScale = transform.localScale; 
-        }else{
-            if(objectTaken!=null){
-            objectTaken = null;
-
-            temporal.transform.SetParent(null); //cambia de padre
-            Rigidbody rb = temporal.GetComponent<Rigidbody>(); //obtiene el rigidbody del objeto tomado
+                objectTaken.transform.SetParent(padre.transform); //cambia de padre
+                Rigidbody rb = objectTaken.GetComponent<Rigidbody>(); //obtiene el rigidbody del objeto tomado
+                rb.isKinematic = true; //activa la funcionalidad kinematica
+                rb.useGravity = false; //desactiva la gravedad del objeto tomado para que no caiga de las manos
+                objectTaken.transform.position = transform.position; //posiciona al obj tomado en las manos del personaje
+                objectTaken.transform.rotation = transform.rotation; //posiciona al obj tomado en la rotacion de las manos del personaje            
+                objectTaken.transform.localScale = transform.localScale;                
+            }
+        }else{ //si no lo estoy tomando ya
+            if(!action){ // pero ya se habia estado tomando (es decir, se solto)            
+            objectTaken.transform.SetParent(null); //cambia de padre
+            Rigidbody rb = objectTaken.GetComponent<Rigidbody>(); //obtiene el rigidbody del objeto tomado
             rb.isKinematic = false; 
             rb.useGravity = true; 
-            temporal.transform.localScale = original_scale.localScale; //recupera la escala original
+            objectTaken.transform.localScale = original_scale; //recupera la escala original
+
+            objectTaken = null;
             }
         }
     }
@@ -75,8 +81,10 @@ if (temporal.CompareTag("TakenObject")){
 }
 
 private void OnTriggerExit(Collider other) {
-    if (other.gameObject.CompareTag("TakenObject")){
-        isObjectNextYou = false;
+    if (objectTaken == null) { //(mod postclase) solo actualiza la variable si no estamos cargando a algun objeto
+        if (other.gameObject.CompareTag("TakenObject")){
+            isObjectNextYou = false;
+        }
     }
 }
 
